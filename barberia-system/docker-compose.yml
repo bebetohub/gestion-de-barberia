@@ -1,0 +1,33 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in backend/.env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in backend/.env}
+      MONGO_INITDB_DATABASE: barberia
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - barberia_mongo_data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--username",
+          "${MONGO_ROOT_USERNAME}",
+          "--password",
+          "${MONGO_ROOT_PASSWORD}",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand('ping').ok",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  barberia_mongo_data:

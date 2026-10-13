@@ -4,6 +4,14 @@ Sistema completo de gestión para Barbería Mecha desarrollado con **Vue.js**, *
 
 ## 🚀 Características
 
+### Acceso y seguridad
+
+- ✅ Inicio de sesión de administrador con usuario y contraseña
+- ✅ Creación de una sola cuenta inicial al configurar el sistema
+- ✅ Sesiones seguras guardadas en MongoDB
+- ✅ Cambio de contraseña y cierre de sesión
+- ✅ Rutas del frontend y endpoints de gestión protegidos
+
 ### Gestión de Personal
 
 - ✅ Registro y gestión de barberos
@@ -81,7 +89,7 @@ Sistema completo de gestión para Barbería Mecha desarrollado con **Vue.js**, *
 ### Requisitos Previos
 
 - Node.js (versión 16 o superior)
-- MongoDB (local o cloud)
+- Docker Desktop para MongoDB local, o una instancia de MongoDB Atlas
 - npm o yarn
 
 ### 1. Clonar el repositorio
@@ -99,23 +107,57 @@ npm install
 ```
 
 **Configurar variables de entorno:**
-Edita el archivo `.env`:
+Copia `backend/.env.example` como `backend/.env` (si ya existe, conserva sus claves y agrega las que faltan) y configura las variables:
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/barberia
+MONGODB_URI=mongodb://barberia_admin:TU_PASSWORD_HEX@127.0.0.1:27017/barberia?authSource=admin
 NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+SESSION_SECRET=una-clave-aleatoria-secreta-de-al-menos-32-caracteres
+SETUP_SECRET=otra-clave-aleatoria-distinta-de-al-menos-32-caracteres
+MONGO_ROOT_USERNAME=barberia_admin
+MONGO_ROOT_PASSWORD=TU_PASSWORD_HEX
+INITIAL_ADMIN_USERS=[{"usuario":"admin","password":"CAMBIAR_POR_UNA_CLAVE_SEGURA"},{"usuario":"operador","password":"OTRA_CLAVE_SEGURA"}]
+```
+
+Usa claves secretas distintas en cada instalación. Genera claves aleatorias con Node.js; utiliza una para cada secreto y una para la contraseña de MongoDB. No dejes los valores de ejemplo en `SESSION_SECRET` o `SETUP_SECRET`. `SETUP_SECRET` solo es obligatoria si se va a crear la primera cuenta desde la pantalla de configuración; si usas `npm run seed-admins`, puedes omitirla después de crear los administradores.
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Reemplaza `TU_PASSWORD_HEX` por la misma clave aleatoria en `MONGODB_URI` y `MONGO_ROOT_PASSWORD`. Deja una sola definición de `MONGODB_URI`; debe ser la URL autenticada y su contraseña debe coincidir con la que se usó al crear el usuario de MongoDB en Docker. Configura `INITIAL_ADMIN_USERS` como un arreglo JSON de usuarios distintos; no dejes las contraseñas de ejemplo. El seeder crea los que falten, conserva cuentas existentes y nunca imprime sus contraseñas. Si cambias la contraseña en ese arreglo después de crear una cuenta, el seeder no cambiará la contraseña existente: cámbiala desde el sistema.
+
+Si ya mostraste una contraseña real en un chat o captura, considérala expuesta y rótala. Cambiar `MONGO_ROOT_PASSWORD` en `.env` por sí solo no cambia la contraseña del usuario dentro de un volumen de MongoDB ya inicializado; primero hay que actualizar ese usuario en MongoDB y luego cambiar el valor en `.env`.
+
+### 3. Iniciar MongoDB con Docker
+
+Requisito: Docker Desktop instalado y ejecutándose. Desde la carpeta `barberia-system`, inicia MongoDB:
+
+```bash
+docker compose --env-file backend/.env up -d mongo
+docker compose --env-file backend/.env ps
+```
+
+El servicio publica MongoDB solo en `127.0.0.1:27017` y conserva los datos en el volumen `barberia_mongo_data`, incluso si se detiene el contenedor. Para detener MongoDB sin borrar los datos:
+
+```bash
+docker compose --env-file backend/.env down
 ```
 
 **Iniciar el servidor:**
 
 ```bash
+cd backend
+npm install
+npm run seed-admins
 npm run dev
 # o
 npm start
 ```
 
-El backend estará disponible en `http://localhost:5000`
+El seeder es repetible: crea los administradores configurados que todavía no existen y no cambia sus contraseñas si ya fueron creados. El backend estará disponible en `http://localhost:5000`.
 
 ### 3. Configurar el Frontend
 
@@ -131,6 +173,8 @@ npm run dev
 ```
 
 El frontend estará disponible en `http://localhost:3000`
+
+En el primer acceso, inicia sesión con una de las cuentas del seeder. También se conserva la opción de crear una cuenta inicial usando la `SETUP_SECRET` si todavía no hay administradores. Todas las cuentas actuales son administradores con acceso completo; no existe un registro público de usuarios. Desde el menú se puede cambiar la contraseña o cerrar sesión.
 
 ## 🗄️ Estructura de la Base de Datos
 
@@ -222,6 +266,19 @@ El frontend estará disponible en `http://localhost:3000`
 
 ## 🔄 API Endpoints
 
+### Autenticación
+
+- `GET /api/auth/setup-status` - Verificar si es necesario crear la cuenta inicial
+- `POST /api/auth/setup` - Crear la cuenta inicial (requiere `SETUP_SECRET`)
+- `POST /api/auth/login` - Iniciar sesión
+- `GET /api/auth/session` - Consultar la sesión actual
+- `POST /api/auth/change-password` - Cambiar la contraseña de la cuenta autenticada
+- `POST /api/auth/logout` - Cerrar sesión
+
+Para provisionar administradores, configurar `INITIAL_ADMIN_USERS` en `backend/.env` y ejecutar `npm run seed-admins` desde `backend`.
+
+Todas las rutas de gestión que siguen requieren una sesión iniciada.
+
 ### Barberos
 
 - `GET /api/barberos` - Listar barberos
@@ -303,6 +360,8 @@ El frontend estará disponible en `http://localhost:3000`
 - Validación de stock antes de ventas
 - Verificación de datos requeridos
 - Control de estados consistentes
+- Sesión obligatoria para las rutas de gestión del backend
+- Contraseñas almacenadas como hash, nunca en texto plano
 
 ### Actualizaciones en Tiempo Real
 

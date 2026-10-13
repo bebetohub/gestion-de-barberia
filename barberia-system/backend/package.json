@@ -7,12 +7,16 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "init-data": "node init-data.js",
+    "seed-admins": "node scripts/seed-admins.js",
     "test-ventas": "node test-ventas.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "connect-mongo": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.21.2",
+    "express-session": "^1.19.0",
     "mongodb": "^6.20.0",
     "mongoose": "^8.19.2"
   },

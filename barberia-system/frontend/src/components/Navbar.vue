@@ -6,7 +6,7 @@
           <h1 class="text-xl font-bold">💈🔥 Barbería Mecha</h1>
         </div>
         
-        <div class="hidden md:flex space-x-4">
+        <div class="hidden xl:flex flex-wrap justify-end gap-1">
           <router-link 
             v-for="item in menuItems" 
             :key="item.name"
@@ -18,10 +18,23 @@
           >
             {{ item.name }}
           </router-link>
+          <router-link
+            to="/cambiar-contrasena"
+            class="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition duration-200"
+            :class="{ 'bg-blue-900': $route.path === '/cambiar-contrasena' }"
+          >
+            Cambiar contraseña
+          </router-link>
+          <button
+            @click="logout"
+            class="px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition duration-200"
+          >
+            Cerrar sesión
+          </button>
         </div>
 
         <!-- Menú móvil -->
-        <div class="md:hidden">
+        <div class="xl:hidden">
           <button 
             @click="mobileMenuOpen = !mobileMenuOpen"
             class="p-2 rounded-md hover:bg-blue-700"
@@ -35,7 +48,7 @@
       </div>
 
       <!-- Menú móvil desplegable -->
-      <div v-show="mobileMenuOpen" class="md:hidden pb-4">
+      <div v-show="mobileMenuOpen" class="xl:hidden pb-4">
         <div class="flex flex-col space-y-2">
           <router-link 
             v-for="item in menuItems" 
@@ -49,6 +62,19 @@
           >
             {{ item.name }}
           </router-link>
+          <router-link
+            to="/cambiar-contrasena"
+            class="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition duration-200"
+            @click="mobileMenuOpen = false"
+          >
+            Cambiar contraseña
+          </router-link>
+          <button
+            @click="logout"
+            class="px-3 py-2 text-left rounded-md text-sm font-medium hover:bg-red-700 transition duration-200"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </div>
     </div>
@@ -56,6 +82,8 @@
 </template>
 
 <script>
+import api from '../services/api'
+
 export default {
   name: 'Navbar',
   data() {
@@ -71,6 +99,18 @@ export default {
         { name: 'Ventas', path: '/ventas' },
         { name: 'Reportes', path: '/reportes' }
       ]
+    }
+  },
+  methods: {
+    async logout() {
+      try {
+        await api.post('/auth/logout')
+        this.mobileMenuOpen = false
+        await this.$router.replace({ name: 'Login' })
+      } catch (error) {
+        console.error('Error cerrando sesión:', error)
+        alert('No se pudo cerrar la sesión. Intenta nuevamente.')
+      }
     }
   }
 }
